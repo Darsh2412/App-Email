@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure Email Sender</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        input[type="email"],
+        input[type="password"],
+        input[type="text"],
+        textarea {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        textarea {
+            height: 100px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            display: none;
+        }
+        .success {
+            background-color: #dff0d8;
+            color: #3c763d;
+            border: 1px solid #d6e9c6;
+        }
+        .error {
+            background-color: #f2dede;
+            color: #a94442;
+            border: 1px solid #ebccd1;
+        }
+        .loading {
+            display: none;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h2>Secure Email Sender</h2>
+    <div id="status" class="status"></div>
+    <form id="emailForm" onsubmit="return false;">
+        <div class="form-group">
+            <label for="senderEmail">Sender Email (Gmail):</label>
+            <input type="email" id="senderEmail" required>
+        </div>
+        <div class="form-group">
+            <label for="senderPassword">App Password:</label>
+            <input type="password" id="senderPassword" required>
+            <small>Use Gmail App Password, not your regular password. <a href="https://myaccount.google.com/apppasswords" target="_blank">Generate here</a></small>
+        </div>
+        <div class="form-group">
+            <label for="receiverEmails">Recipients (comma-separated):</label>
+            <input type="text" id="receiverEmails" required>
+        </div>
+        <div class="form-group">
+            <label for="subject">Subject:</label>
+            <input type="text" id="subject" required>
+        </div>
+        <div class="form-group">
+            <label for="body">Message:</label>
+            <textarea id="body" required></textarea>
+        </div>
+        <div class="form-group">
+            <label for="attachment">Attachment:</label>
+            <input type="file" id="attachment">
+        </div>
+        <div id="loading" class="loading">Sending email...</div>
+        <button onclick="sendEmail()">Send Email</button>
+    </form>
+
+    <script>
+        async function sendEmail() {
+            const statusDiv = document.getElementById("status");
+            const loadingDiv = document.getElementById("loading");
+            
+            try {
+                // Show loading
+                loadingDiv.style.display = "block";
+                statusDiv.style.display = "none";
+
+                const formData = new FormData();
+                formData.append("sender_email", document.getElementById("senderEmail").value);
+                formData.append("sender_password", document.getElementById("senderPassword").value);
+                formData.append("receiver_emails", document.getElementById("receiverEmails").value);
+                formData.append("subject", document.getElementById("subject").value);
+                formData.append("body", document.getElementById("body").value);
+
+                const attachmentInput = document.getElementById("attachment");
+                if (attachmentInput.files.length > 0) {
+                    formData.append("attachment", attachmentInput.files[0]);
+                }
+
+                const response = await fetch("http://127.0.0.1:5000/send_email", {
+                    method: "POST",
+                    body: formData
+                });
+
+                const result = await response.json();
+                
+                // Display status message
+                statusDiv.textContent = result.message;
+                statusDiv.className = `status ${result.status === "success" ? "success" : "error"}`;
+                statusDiv.style.display = "block";
+
+                if (result.status === "success") {
+                    document.getElementById("emailForm").reset();
+                }
+            } catch (error) {
+                statusDiv.textContent = "Error: " + error.message;
+                statusDiv.className = "status error";
+                statusDiv.style.display = "block";
+            } finally {
+                loadingDiv.style.display = "none";
+            }
+        }
+    </script>
+</body>
+</html>
