@@ -44,3 +44,76 @@ BEGIN
     (* Compute the average *)
     average := sum / 100.0;
 END_FUNCTION_BLOCK
+
+
+
+
+
+
+
+
+
+
+
+
+
+PROGRAM WeightStabilization
+    VAR
+        samples: ARRAY[1..100] OF REAL; (* Buffer for moving average *)
+        sum: REAL := 0.0;
+        average: REAL := 0.0;
+        newSample: REAL := 0.0; (* New input weight from AI module *)
+        stableWeight: REAL := 0.0; (* Displayed stable weight *)
+        prevWeight: REAL := 0.0;
+        threshold: REAL := 0.1; (* Stability threshold ±0.1g *)
+        index: INT := 1;
+        stableCounter: INT := 0;
+        stableTimeThreshold: INT := 250; (* Number of cycles for ~1s stability check *)
+    END_VAR
+END_PROGRAM
+
+FUNCTION_BLOCK UpdateWeight
+    VAR_INPUT
+        newSample: REAL;
+    END_VAR
+    VAR_OUTPUT
+        stableWeight: REAL;
+    END_VAR
+    VAR
+        i: INT;
+        oldSample: REAL;
+    END_VAR
+BEGIN
+    (* Remove the oldest sample from sum *)
+    oldSample := samples[100];
+    sum := sum - oldSample;
+
+    (* Shift samples right *)
+    FOR i := 100 TO 2 BY -1 DO
+        samples[i] := samples[i - 1];
+    END_FOR;
+
+    (* Insert new sample at the first position *)
+    samples[1] := newSample;
+    sum := sum + newSample;
+
+    (* Compute moving average *)
+    average := sum / 100.0;
+
+    (* Stability Check *)
+    IF ABS(average - prevWeight) <= threshold THEN
+        stableCounter := stableCounter + 1;
+    ELSE
+        stableCounter := 0; (* Reset counter if fluctuation is large *)
+    END_IF;
+
+    (* Update stable weight only if it stays stable for ~1 second *)
+    IF stableCounter >= stableTimeThreshold THEN
+        stableWeight := average;
+        prevWeight := average; (* Update previous weight *)
+        stableCounter := 0; (* Reset stability counter *)
+    END_IF;
+END_FUNCTION_BLOCK
+
+
+
